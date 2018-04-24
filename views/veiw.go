@@ -2,12 +2,12 @@ package views
 
 import (
 	"html/template"
-	"path/filepath"
 	"net/http"
+	"path/filepath"
 )
 
 const (
-	LayoutDir string = "views/layouts/"
+	LayoutDir   string = "views/layouts/"
 	TemplateExt string = ".gohtml"
 )
 
@@ -32,11 +32,10 @@ type View struct {
 	Layout   string
 }
 
-
+// Render writes parsed date into resp writer
 func (v *View) Render(w http.ResponseWriter, data interface{}) error {
 	return v.Template.ExecuteTemplate(w, v.Layout, data)
 }
-
 
 func layoutFiles() []string {
 	files, err := filepath.Glob(LayoutDir + "*" + TemplateExt)
