@@ -3,6 +3,7 @@ package controllers
 import (
 	"../views"
 	"fmt"
+	"github.com/gorilla/schema"
 	"net/http"
 )
 
@@ -22,11 +23,22 @@ func (u *Users) New(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+type SignupForm struct {
+	Email    string `schema:"email"`
+	Password string `schema:""`
+}
+
 func (u *Users) Create(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		panic(err)
 	}
 
-	fmt.Fprintln(w, r.PostForm["email"])
-	fmt.Fprintln(w, r.PostFormValue("email"))
+	decoder := schema.NewDecoder()
+	var form SignupForm
+
+	if err := decoder.Decode(&form, r.PostForm); err != nil {
+		panic(err)
+	}
+
+	fmt.Fprintln(w, form)
 }
