@@ -40,6 +40,14 @@ func (us UserService) ByID(id uint) (*User, error) {
 	}
 }
 
+func (us *UserService) Create(u *User) error {
+	return us.db.Create(u).Error
+}
+
+func (us *UserService) GetDB() *gorm.DB {
+	return us.db
+}
+
 func (us UserService) Close() error {
 	return us.db.Close()
 }
