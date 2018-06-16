@@ -76,6 +76,20 @@ func fist(db *gorm.DB, u *User) error {
 	return err
 }
 
+func (us *UserService) DestructiveReset() error {
+	if err := us.db.DropTableIfExists(&User{}).Error; err != nil {
+		return err
+	}
+	return us.AutoMigrate()
+}
+
+func (us *UserService) AutoMigrate() error {
+	if err := us.db.AutoMigrate(&User{}).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
 type User struct {
 	gorm.Model
 	Name  string

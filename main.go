@@ -2,14 +2,30 @@ package main
 
 import (
 	"./controllers"
-	"net/http"
-
+	"./models"
+	"fmt"
 	"github.com/gorilla/mux"
+	"net/http"
+)
+
+const (
+	host   = "localhost"
+	port   = 5432
+	user   = "kbabkin"
+	dbname = "postgres"
 )
 
 func main() {
+	PSQLInfo := fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=disable", host, port, user, dbname)
 
-	usersC := controllers.NewUsers()
+	us, err := models.NewUserService(PSQLInfo)
+	if err != nil {
+		panic(err)
+	}
+
+	defer us.Close()
+
+	usersC := controllers.NewUsers(us)
 	staticC := controllers.NewStatic()
 
 	r := mux.NewRouter()
