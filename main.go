@@ -28,6 +28,9 @@ func main() {
 	usersC := controllers.NewUsers(us)
 	staticC := controllers.NewStatic()
 
+	us.DestructiveReset()
+	us.AutoMigrate()
+
 	r := mux.NewRouter()
 
 	r.Handle("/", staticC.HomeView).Methods("GET")
