@@ -1,6 +1,8 @@
 package models
 
 import (
+	"../hash"
+	"../rand"
 	"errors"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -13,7 +15,10 @@ var (
 	ErrorInvalidPassword = errors.New("models: incorrect password provided")
 )
 
-const userPepper = "asdasdfaljfl;kj3;io4uklfjalkjrhp2o83urowhrup8234u"
+const (
+	userPepper    = "asdasdfaljfl;kj3;io4uklfjalkja#$#%@#sd4rhp2o83urowhrup8234u"
+	hmacSecretKey = "asdasdasd32948723uhqkuryo782643198%$@!%^&#!t!^&%#!T!&^%&^^!@f!@&^!#%!&"
+)
 
 type User struct {
 	gorm.Model
@@ -21,20 +26,25 @@ type User struct {
 	Email        string `gorm:"not null;unique_index"`
 	Password     string `gorm:"-"`
 	PasswordHash string `gorm:"not null"`
+	Remember     string `gorm:"-"`
+	RememberHash string `gorm:"not null;unique_index"`
 }
 
 type UserService struct {
 	db *gorm.DB
+	hash.HMAC
 }
 
 func NewUserService(connectionString string) (*UserService, error) {
+	hmac := hash.NewHMAC(hmacSecretKey)
 	db, err := gorm.Open("postgres", connectionString)
 	if err != nil {
 		return nil, err
 	}
 
 	return &UserService{
-		db: db,
+		db:   db,
+		HMAC: hmac,
 	}, nil
 }
 
@@ -46,6 +56,16 @@ func (us *UserService) Create(u *User) error {
 	}
 	u.PasswordHash = string(hashBytes)
 	u.Password = ""
+
+	if u.Remember == "" {
+		token, err := rand.RememberToken()
+		if err != nil {
+			return err
+		}
+		u.Remember = token
+	}
+	u.RememberHash = us.Hash(u.Remember)
+
 	return us.db.Create(u).Error
 }
 
@@ -58,15 +78,11 @@ func (us *UserService) Close() error {
 }
 
 func (us *UserService) Update(u *User) error {
+	if u.Remember != "" {
+		u.RememberHash = us.Hash(u.Remember)
+	}
+
 	return us.db.Save(u).Error
-}
-
-func (us *UserService) ByEmail(email string) (*User, error) {
-	var user User
-	db := us.db.Where("email = ?", email)
-	err := fist(db, &user)
-
-	return &user, err
 }
 
 func (us *UserService) Authenticate(email, password string) (*User, error) {
@@ -75,7 +91,10 @@ func (us *UserService) Authenticate(email, password string) (*User, error) {
 		return nil, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password+userPepper))
+	err = bcrypt.CompareHashAndPassword(
+		[]byte(user.PasswordHash),
+		[]byte(password+userPepper),
+	)
 	if err != nil {
 		switch err {
 		case bcrypt.ErrMismatchedHashAndPassword:
@@ -96,11 +115,32 @@ func (us *UserService) Delete(id uint) error {
 	return us.db.Delete(user).Error
 }
 
+func (us *UserService) ByEmail(email string) (*User, error) {
+	var user User
+	db := us.db.Where("email = ?", email)
+	err := fist(db, &user)
+
+	return &user, err
+}
+
 func (us UserService) ByID(id uint) (*User, error) {
 	var user User
 
 	db := us.db.Where("id = ?", id)
 	err := fist(db, &user)
+
+	return &user, err
+}
+
+func (us *UserService) ByRemember(token string) (*User, error) {
+	var user User
+	hashedToken := us.Hash(token)
+
+	db := us.db.Where("remember_hash = ?", hashedToken)
+	err := fist(db, &user)
+	if err != nil {
+		return nil, err
+	}
 
 	return &user, err
 }

@@ -24,7 +24,6 @@ func main() {
 	}
 
 	defer us.Close()
-
 	usersC := controllers.NewUsers(us)
 	staticC := controllers.NewStatic()
 
