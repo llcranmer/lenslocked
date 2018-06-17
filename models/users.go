@@ -8,8 +8,9 @@ import (
 )
 
 var (
-	ErrorNotFound  = errors.New("models: resource not found")
-	ErrorInvalidID = errors.New("models: id must be > 0")
+	ErrorNotFound        = errors.New("models: resource not found")
+	ErrorInvalidID       = errors.New("models: id must be > 0")
+	ErrorInvalidPassword = errors.New("models: incorrect password provided")
 )
 
 const userPepper = "asdasdfaljfl;kj3;io4uklfjalkjrhp2o83urowhrup8234u"
@@ -66,6 +67,25 @@ func (us *UserService) ByEmail(email string) (*User, error) {
 	err := fist(db, &user)
 
 	return &user, err
+}
+
+func (us *UserService) Authenticate(email, password string) (*User, error) {
+	user, err := us.ByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password+userPepper))
+	if err != nil {
+		switch err {
+		case bcrypt.ErrMismatchedHashAndPassword:
+			return nil, ErrorInvalidPassword
+		default:
+			return nil, err
+		}
+	}
+
+	return user, nil
 }
 
 func (us *UserService) Delete(id uint) error {
