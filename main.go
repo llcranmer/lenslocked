@@ -29,7 +29,7 @@ func main() {
 	staticC := controllers.NewStatic()
 
 	//us.DestructiveReset()
-	us.AutoMigrate()
+	//us.AutoMigrate()
 
 	r := mux.NewRouter()
 
@@ -39,5 +39,6 @@ func main() {
 	r.HandleFunc("/signup", usersC.Create).Methods("POST")
 	r.Handle("/login", usersC.LoginView).Methods("GET")
 	r.HandleFunc("/login", usersC.Login).Methods("POST")
+	r.HandleFunc("/cookie_test", usersC.CookieTest).Methods("GET")
 	http.ListenAndServe(":3000", r)
 }
