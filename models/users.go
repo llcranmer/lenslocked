@@ -12,6 +12,16 @@ var (
 	ErrorInvalidID = errors.New("models: id must be > 0")
 )
 
+const userPepper = "asdasdfaljfl;kj3;io4uklfjalkjrhp2o83urowhrup8234u"
+
+type User struct {
+	gorm.Model
+	Name         string
+	Email        string `gorm:"not null;unique_index"`
+	Password     string `gorm:"-"`
+	PasswordHash string `gorm:"not null"`
+}
+
 type UserService struct {
 	db *gorm.DB
 }
@@ -28,7 +38,8 @@ func NewUserService(connectionString string) (*UserService, error) {
 }
 
 func (us *UserService) Create(u *User) error {
-	hashBytes, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+	pwBytes := []byte(u.Password + userPepper)
+	hashBytes, err := bcrypt.GenerateFromPassword(pwBytes, bcrypt.DefaultCost)
 	if err != nil {
 		panic(err)
 	}
@@ -95,12 +106,4 @@ func (us *UserService) AutoMigrate() error {
 		return err
 	}
 	return nil
-}
-
-type User struct {
-	gorm.Model
-	Name         string
-	Email        string `gorm:"not null;unique_index"`
-	Password     string `gorm:"-"`
-	PasswordHash string `gorm:"not null"`
 }
