@@ -4,6 +4,7 @@ import (
 	"../hash"
 	"../rand"
 	"errors"
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"golang.org/x/crypto/bcrypt"
@@ -35,10 +36,17 @@ type UserDB interface {
 	AutoMigrate() error
 }
 
+type UserService interface {
+	Authenticate(email, password string) (*User, error)
+	UserDB
+}
+
 func NewUserGorm(connectionString string) (*userGorm, error) {
 	hmac := hash.NewHMAC(hmacSecretKey)
 	db, err := gorm.Open("postgres", connectionString)
 	if err != nil {
+		fmt.Println(err)
+
 		return nil, err
 	}
 
@@ -50,7 +58,7 @@ func NewUserGorm(connectionString string) (*userGorm, error) {
 
 var _ UserDB = &userGorm{}
 
-type UserService struct {
+type userService struct {
 	UserDB
 }
 
@@ -81,13 +89,13 @@ func (uv *userValidator) ByID(id uint) (*User, error) {
 	return uv.ByID(id)
 }
 
-func NewUserService(connectionString string) (*UserService, error) {
+func NewUserService(connectionString string) (UserService, error) {
 	ug, err := NewUserGorm(connectionString)
 	if err != nil {
 		return nil, err
 	}
 
-	return &UserService{
+	return &userService{
 		UserDB: &userValidator{
 			UserDB: ug,
 		},
@@ -127,7 +135,7 @@ func (ug *userGorm) Update(u *User) error {
 	return ug.db.Save(u).Error
 }
 
-func (us *UserService) Authenticate(email, password string) (*User, error) {
+func (us *userService) Authenticate(email, password string) (*User, error) {
 	user, err := us.ByEmail(email)
 	if err != nil {
 		return nil, err
